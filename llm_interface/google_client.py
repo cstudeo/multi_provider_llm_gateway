@@ -5,15 +5,17 @@ Google Provider Implementation
 import google.generativeai as genai
 from typing import Dict, Any
 from .base import BaseLLMClient, LLMRequest, LLMResponse
+from config import Config
 
 
 class GoogleClient(BaseLLMClient):
     """Google provider implementation"""
-    
-    def __init__(self, api_key: str, **kwargs):
+
+    def __init__(self, **kwargs):
+        api_key = Config.GOOGLE_API_KEY
         super().__init__(api_key, **kwargs)
         genai.configure(api_key=api_key)
-        self.default_model = kwargs.get('default_model', 'gemini-1.5-flash')
+        self.default_model = kwargs.get('default_model', 'gemini-1.5-pro')
     
     def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Google Gemini API"""
@@ -27,7 +29,6 @@ class GoogleClient(BaseLLMClient):
             if request.temperature is not None:
                 generation_config['temperature'] = request.temperature
             
-            # Extract additional parameters from request
             extra_params = {k: v for k, v in request.dict().items() 
                            if k not in ['prompt', 'model', 'max_tokens', 'temperature']}
             
@@ -37,7 +38,6 @@ class GoogleClient(BaseLLMClient):
                 **extra_params
             )
             
-            # Extract usage metadata safely
             usage_data = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 usage_data = {

@@ -13,11 +13,9 @@ from llm_service import LLMService
 from rate_limiter.limiter import RateLimitExceededException
 from config import Config
 
-# Initialize Flask app
 app = Flask(__name__, static_folder='frontend/build/static')
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-# Initialize LLM service
 llm_service = LLMService()
 
 @app.route('/providers', methods=['GET'])
@@ -34,7 +32,6 @@ def get_providers():
             'error': 'Failed to get providers',
             'message': str(e)
         }), 500
-
 
 @app.route('/generate', methods=['POST'])
 def generate():
@@ -105,82 +102,6 @@ def generate():
             'message': str(e)
         }), 500
 
-
-@app.route('/generate/failover', methods=['POST'])
-def generate_with_failover():
-    """
-    Generate text with automatic failover between providers
-    
-    Request body:
-    {
-        "preferred_provider": "openai|anthropic|google",
-        "prompt": "Your prompt here",
-        "user_id": "optional_user_id",
-        "model": "optional_model_name",
-        "max_tokens": 1000,
-        "temperature": 0.7
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'Request body is required'}), 400
-        
-        # Validate required fields
-        if 'preferred_provider' not in data:
-            return jsonify({'error': 'preferred_provider is required'}), 400
-        if 'prompt' not in data:
-            return jsonify({'error': 'prompt is required'}), 400
-        
-        preferred_provider = data['preferred_provider']
-        prompt = data['prompt']
-        user_id = data.get('user_id')
-        
-        # Extract LLM parameters
-        llm_params = {}
-        for param in ['model', 'max_tokens', 'temperature']:
-            if param in data:
-                llm_params[param] = data[param]
-        
-        # Generate response with failover
-        response = llm_service.generate_with_failover(
-            preferred_provider, prompt, user_id, **llm_params
-        )
-        
-        return jsonify({
-            'success': True,
-            'response': {
-                'content': response.content,
-                'provider': response.provider,
-                'model': response.model,
-                'usage': response.usage,
-                'metadata': response.metadata
-            }
-        })
-        
-    except RateLimitExceededException as e:
-        return jsonify({
-            'error': 'Rate limit exceeded',
-            'message': str(e),
-            'rate_limit_info': e.rate_limit_info
-        }), 429
-        
-    except ValueError as e:
-        return jsonify({
-            'error': 'Invalid request',
-            'message': str(e)
-        }), 400
-        
-    except Exception as e:
-        app.logger.error(f"Failover generation error: {str(e)}")
-        app.logger.error(traceback.format_exc())
-        return jsonify({
-            'error': 'All providers failed',
-            'message': str(e)
-        }), 500
-
-
 @app.route('/rate-limit/<provider>', methods=['GET'])
 def get_rate_limit_status(provider):
     """Get rate limit status for a provider"""
@@ -228,7 +149,6 @@ def reset_rate_limit(provider):
             'message': str(e)
         }), 500
 
-
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
@@ -236,7 +156,6 @@ def not_found(error):
         'error': 'Endpoint not found',
         'message': 'The requested endpoint does not exist'
     }), 404
-
 
 @app.errorhandler(405)
 def method_not_allowed(error):
@@ -246,7 +165,6 @@ def method_not_allowed(error):
         'message': 'The HTTP method is not allowed for this endpoint'
     }), 405
 
-
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
@@ -255,8 +173,6 @@ def internal_error(error):
         'message': 'An unexpected error occurred'
     }), 500
 
-
-# Serve React App
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react_app(path):
@@ -268,7 +184,6 @@ def serve_react_app(path):
 
 
 if __name__ == '__main__':
-    # Validate configuration before starting
     if not Config.validate_config():
         print("Configuration validation failed. Please check your environment variables.")
         exit(1)

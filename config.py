@@ -1,8 +1,5 @@
 """
 Configuration Management
-
-This module handles loading configuration from environment variables
-and provides default values for the LLM interface and rate limiter.
 """
 
 import os
@@ -42,7 +39,6 @@ class Config:
     
     @classmethod
     def get_redis_config(cls) -> Dict[str, Any]:
-        """Get Redis connection configuration"""
         config = {
             'host': cls.REDIS_HOST,
             'port': cls.REDIS_PORT,
