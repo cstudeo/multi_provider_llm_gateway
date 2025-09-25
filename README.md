@@ -225,10 +225,6 @@ service = LLMService()
 response = service.generate("openai", "Hello, world!")
 print(response.content)
 
-# Generate with failover
-response = service.generate_with_failover("openai", "Hello, world!")
-print(response.content)
-
 # Check rate limit status
 status = service.get_rate_limit_status("openai", "user123")
 print(status)

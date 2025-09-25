@@ -17,13 +17,9 @@ from config import Config
 
 class LLMService:
     """
-    Unified LLM service that manages multiple providers with rate limiting.
-    
     This service provides:
     - Unified interface to multiple LLM providers
     - Distributed rate limiting across providers
-    - Automatic failover between providers
-    - Provider health monitoring
     """
     
     def __init__(self):
@@ -36,18 +32,9 @@ class LLMService:
     def _initialize_providers(self):
         """Initialize all available LLM providers"""
         try:
-            if Config.OPENAI_API_KEY:
-                self.providers['openai'] = OpenAIClient(Config.OPENAI_API_KEY)
-                print("✓ OpenAI provider initialized")
-            
-            if Config.ANTHROPIC_API_KEY:
-                self.providers['anthropic'] = AnthropicClient(Config.ANTHROPIC_API_KEY)
-                print("✓ Anthropic provider initialized")
-            
-            if Config.GOOGLE_API_KEY:
-                self.providers['google'] = GoogleClient(Config.GOOGLE_API_KEY)
-                print("✓ Google provider initialized")
-                
+            self.providers['openai'] = OpenAIClient()
+            self.providers['anthropic'] = AnthropicClient()            
+            self.providers['google'] = GoogleClient()                
         except Exception as e:
             print(f"Error initializing providers: {e}")
     
@@ -59,7 +46,7 @@ class LLMService:
             
             rate_limit_configs = Config.get_rate_limit_configs()
             self.rate_limiter = DistributedRateLimiter(redis_client, rate_limit_configs)
-            print("✓ Distributed rate limiter initialized")
+            print("Distributed rate limiter initialized")
             
         except Exception as e:
             print(f"Warning: Rate limiter initialization failed: {e}")
@@ -79,20 +66,6 @@ class LLMService:
     ) -> LLMResponse:
         """
         Generate a response using the specified provider with rate limiting.
-        
-        Args:
-            provider: Name of the provider to use ('openai', 'anthropic', 'google')
-            prompt: The input prompt
-            user_id: Optional user identifier for rate limiting
-            **kwargs: Additional parameters for the LLM request
-            
-        Returns:
-            LLMResponse object
-            
-        Raises:
-            ValueError: If provider is not available
-            RateLimitExceededException: If rate limit is exceeded
-            Exception: If the generation fails
         """
         if provider not in self.providers:
             available = ', '.join(self.get_available_providers())
@@ -107,14 +80,6 @@ class LLMService:
         response = self.providers[provider].generate(request)
         
         return response
-    
-    def generate_with_failover(
-        self, 
-        preferred_provider: str, 
-        prompt: str, 
-        user_id: Optional[str] = None,
-        **kwargs
-    ) -> LLMResponse:
         """
         Generate a response with automatic failover to other providers.
         
@@ -177,13 +142,6 @@ class LLMService:
     def get_rate_limit_status(self, provider: str, user_id: Optional[str] = None) -> Dict[str, Dict[str, int]]:
         """
         Get current rate limit status for a provider and user.
-        
-        Args:
-            provider: Provider name
-            user_id: Optional user identifier
-            
-        Returns:
-            Dictionary with rate limit status for global and provider limits
         """
         if not self.rate_limiter:
             return {}
@@ -199,39 +157,3 @@ class LLMService:
         status[provider] = self.rate_limiter.get_status(provider_key, provider)
         
         return status
-    
-    def health_check(self) -> Dict[str, Any]:
-        """
-        Perform health check on all components.
-        
-        Returns:
-            Dictionary with health status of all components
-        """
-        health = {
-            'providers': {},
-            'rate_limiter': False,
-            'overall': True
-        }
-        
-        # Check provider health (skip API calls for dummy keys)
-        for name, provider in self.providers.items():
-            try:
-                # Just check if provider is initialized, don't make API calls
-                # This prevents 503 errors when using dummy API keys
-                health['providers'][name] = {'status': 'healthy', 'error': None}
-            except Exception as e:
-                health['providers'][name] = {'status': 'unhealthy', 'error': str(e)}
-                health['overall'] = False
-        
-        # Check rate limiter health
-        if self.rate_limiter:
-            try:
-                # Test Redis connection
-                self.rate_limiter.redis.ping()
-                health['rate_limiter'] = True
-            except Exception as e:
-                health['rate_limiter'] = False
-                health['overall'] = False
-                print(f"Rate limiter health check failed: {e}")
-        
-        return health

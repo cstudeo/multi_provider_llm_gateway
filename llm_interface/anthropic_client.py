@@ -5,12 +5,14 @@ Anthropic Provider Implementation
 import anthropic
 from typing import Dict, Any
 from .base import BaseLLMClient, LLMRequest, LLMResponse
+from config import Config
 
 
 class AnthropicClient(BaseLLMClient):
     """Anthropic provider implementation"""
     
-    def __init__(self, api_key: str, **kwargs):
+    def __init__(self, **kwargs):
+        api_key = Config.ANTHROPIC_API_KEY
         super().__init__(api_key, **kwargs)
         self.client = anthropic.Anthropic(api_key=api_key)
         self.default_model = kwargs.get('default_model', 'claude-3-sonnet-20240229')

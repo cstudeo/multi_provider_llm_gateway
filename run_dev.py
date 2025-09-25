@@ -28,30 +28,22 @@ def run_frontend():
 
 
 def main():
-    """Main function to run both services"""
-    print("🚀 Starting Multi-Provider LLM Interface Development Environment")
-    print("=" * 60)
-    
-    # Check if frontend dependencies are installed
     frontend_path = '/Users/dev/Desktop/tapistro/frontend'
     if not os.path.exists(os.path.join(frontend_path, 'node_modules')):
         print("📦 Installing frontend dependencies...")
         os.chdir(frontend_path)
         subprocess.run(['npm', 'install'])
     
-    # Start backend in a separate thread
     backend_thread = Thread(target=run_backend)
     backend_thread.daemon = True
     backend_thread.start()
     
-    # Wait a moment for backend to start
     time.sleep(3)
     
-    # Start frontend
     try:
         run_frontend()
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down development environment...")
+        print("\nShutting down development environment...")
         sys.exit(0)
 
 

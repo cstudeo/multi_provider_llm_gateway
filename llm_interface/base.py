@@ -10,8 +10,8 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
 
+# Standardized response format for all LLM providers
 class LLMResponse(BaseModel):
-    """Standardized response format for all LLM providers"""
     content: str
     provider: str
     model: str
@@ -19,8 +19,8 @@ class LLMResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+# Standardized request format for all LLM providers
 class LLMRequest(BaseModel):
-    """Standardized request format for all LLM providers"""
     prompt: str
     model: Optional[str] = None
     max_tokens: Optional[int] = None
@@ -30,57 +30,21 @@ class LLMRequest(BaseModel):
         extra = "allow"
 
 
+# Abstract base class for LLM providers - all implementations must inherit from this
 class BaseLLMClient(ABC):
-    """
-    Abstract base class for LLM providers.
     
-    All provider implementations must inherit from this class
-    and implement the generate method.
-    """
-    
-    def __init__(self, api_key: str, **kwargs):
-        """
-        Initialize the LLM client.
-        
-        Args:
-            api_key: API key for the provider
-            **kwargs: Additional provider-specific configuration
-        """
+    def __init__(self,api_key: str, **kwargs):
         self.api_key = api_key
         self.config = kwargs
     
     @abstractmethod
     def generate(self, request: LLMRequest) -> LLMResponse:
-        """
-        Generate a response from the LLM.
-        
-        Args:
-            request: Standardized request object
-            
-        Returns:
-            Standardized response object
-            
-        Raises:
-            Exception: If the request fails
-        """
         pass
     
     @abstractmethod
     def get_provider_name(self) -> str:
-        """
-        Get the name of the provider.
-        
-        Returns:
-            Provider name string
-        """
         pass
     
     @abstractmethod
     def get_default_model(self) -> str:
-        """
-        Get the default model for this provider.
-        
-        Returns:
-            Default model name
-        """
         pass

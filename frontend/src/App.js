@@ -5,7 +5,6 @@ import './App.css';
 function App() {
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState('');
-  const [userId, setUserId] = useState('');
   const [model, setModel] = useState('');
   const [maxTokens, setMaxTokens] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -27,7 +26,7 @@ function App() {
     if (selectedProvider) {
       loadRateLimits();
     }
-  }, [selectedProvider, userId]);
+  }, [selectedProvider]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -50,9 +49,29 @@ function App() {
     if (!selectedProvider) return;
     
     try {
-      const params = userId ? { user_id: userId } : {};
-      const response = await axios.get(`/rate-limit/${selectedProvider}`, { params });
-      setRateLimits(response.data.rate_limits);
+      const allRateLimits = {};
+      
+      // Load rate limits for all providers
+      for (const provider of providers) {
+        try {
+          const response = await axios.get(`/rate-limit/${provider}`);
+          allRateLimits[provider] = response.data.rate_limits[provider];
+        } catch (err) {
+          console.error(`Failed to load rate limits for ${provider}:`, err.message);
+        }
+      }
+      
+      // Also load global rate limit (use the first provider's response)
+      if (providers.length > 0) {
+        try {
+          const response = await axios.get(`/rate-limit/${providers[0]}`);
+          allRateLimits['global'] = response.data.rate_limits['global'];
+        } catch (err) {
+          console.error('Failed to load global rate limits:', err.message);
+        }
+      }
+      
+      setRateLimits(allRateLimits);
     } catch (err) {
       console.error('Failed to load rate limits:', err.message);
     }
@@ -66,7 +85,6 @@ function App() {
 
     const userMessage = currentMessage.trim();
     
-    // Add user message to chat
     const newUserMessage = {
       id: Date.now(),
       type: 'user',
@@ -82,7 +100,6 @@ function App() {
     try {
       const requestData = {
         prompt: userMessage,
-        user_id: userId || undefined,
         model: model || undefined,
         max_tokens: maxTokens ? parseInt(maxTokens) : undefined,
         temperature: temperature ? parseFloat(temperature) : undefined,
@@ -171,17 +188,6 @@ function App() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="userId">User ID:</label>
-              <input
-                type="text"
-                id="userId"
-                className="form-control"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Optional"
-              />
             </div>
             <div className="form-group">
               <label htmlFor="model">Model:</label>

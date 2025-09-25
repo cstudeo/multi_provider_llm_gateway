@@ -5,12 +5,14 @@ OpenAI Provider Implementation
 import openai
 from typing import Dict, Any
 from .base import BaseLLMClient, LLMRequest, LLMResponse
+from config import Config
 
 
 class OpenAIClient(BaseLLMClient):
     """OpenAI provider implementation"""
     
-    def __init__(self, api_key: str, **kwargs):
+    def __init__(self, **kwargs):
+        api_key = Config.OPENAI_API_KEY
         super().__init__(api_key, **kwargs)
         self.client = openai.OpenAI(api_key=api_key)
         self.default_model = kwargs.get('default_model', 'gpt-3.5-turbo')
